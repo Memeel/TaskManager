@@ -7,19 +7,22 @@ Ce script coordonne l'analyse des arguments, la lecture des fichiers et l'exécu
 des commandes de gestion de tâches.
 
 Usage:
-    python3 task.py <fichier> add <description>
+    python3 task.py <fichier> add <description> -l <etiquette1> <etiquette2> ...
     python3 task.py <fichier> modify <id> <nouvelle_description>
     python3 task.py <fichier> rm <id>
+    python3 task.py <fichier> addLabel <id> <etiquette1> <etiquette2> ...
+    python3 task.py <fichier> rmLabel <id>
+    python3 task.py <fichier> clearLabel <id>
     python3 task.py <fichier> show
 
 Exemples:
-    python3 task.py lestaches.txt add "Faire les courses"
+    python3 task.py lestaches.txt add "Faire les courses" -l "demain"
     python3 task.py lestaches.txt modify 1 "Faire les courses au supermarché"
     python3 task.py lestaches.txt rm 1
+    python3 task.py lestaches.txt addLabel 1 urgent 
+    python3 task.py lestaches.txt rmLabel 1
+    python3 task.py lestaches.txt clearLabel 1
     python3 task.py lestaches.txt show
-
-Auteurs: Groupe 4 - Codecamp
-Date: Septembre 2025
 """
 
 import commands
@@ -37,18 +40,40 @@ try:
     
     # === EXÉCUTION DE LA COMMANDE ===
     # Dispatch vers la fonction appropriée selon la commande
+
+    ## Commandes de base
     if options.command == 'add':
-        # Ajoute une nouvelle tâche
-        commands.add(' '.join(options.details), options.file, tasks)
+        # Regarde si il y a une option label
+        if options.labels:
+            # Ajoute une nouvelle tâche
+            commands.add(' '.join(options.details), options.file, tasks, options.labels)
+        else:
+            # Ajoute une nouvelle tâche
+            commands.add(' '.join(options.details), options.file, tasks)
+
+        
         
     elif options.command == 'modify':
-        # Modifie une tâche existante
+        # Modifie la description d'une tâche existante
         commands.modify(options.id, ' '.join(options.details), options.file, tasks)
         
     elif options.command == 'rm':
         # Supprime une tâche
         commands.rm(options.id, options.file, tasks)
+
+    elif options.command == 'addLabel':
+        # Ajoute une étiquette à une tâche existante (la tâche peut déjà avoir des étiquettes)
+        commands.addLabel(options.id, options.labels, options.file, tasks)
+      
+    elif options.command == 'rmLabel':
+        # Supprime une étiquette en demandant à l'utilisateur le label à supprimer
+        commands.rmLabel(options.id, options.file, tasks)
+    
+    elif options.command == 'clearLabel':
+        # Supprime l'ensemble des étiquettes d'une tâche
+        commands.clearLabel(options.id, options.file, tasks)
         
+    ## Affichage
     elif options.command == 'show':
         # Affiche toutes les tâches
         commands.show(tasks)
@@ -57,12 +82,20 @@ except FileNotFoundError:
     # === GESTION DES FICHIERS INEXISTANTS ===
     # Gère le cas où le fichier de tâches n'existe pas encore
     if options.command == 'add':
+        # Regarde si il y a une option label
+        if options.labels:
+            labels = options.labels
+        else:
+            labels = None
         # Permet d'ajouter la première tâche dans un nouveau fichier
-        commands.add(' '.join(options.details), options.file, [])
+        commands.add(' '.join(options.details), options.file, tasks, labels)
+    elif options.command == 'addLabel':
+        # Impossible d'ajouter une étiquette dans un fichier inexistant
+        print(f"Error: The file {options.file} was not found")
     elif options.command == 'modify':
         # Impossible de modifier dans un fichier inexistant
         print(f"Error: The file {options.file} was not found")
-    elif options.command == 'rm':
+    elif options.command == 'rm' or options.command == 'rmLabel' or options.command == 'clearLabel':
         # Impossible de supprimer dans un fichier inexistant
         print(f"Error: The file {options.file} was not found")
     elif options.command == 'show':

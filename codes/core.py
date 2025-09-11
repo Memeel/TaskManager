@@ -1,12 +1,8 @@
 """
-Core module for task management.
-
 Ce module contient la logique métier principale pour la gestion des tâches.
 Il fournit les fonctions de base pour créer, modifier, supprimer et afficher des tâches.
 
 Format des tâches: Chaque tâche est stockée sous forme "ID;Description" dans le fichier.
-
-Auteurs: Groupe 4 - Codecamp
 """
 
 
@@ -18,44 +14,47 @@ def parse_tasks(tasks):
         tasks (list): Liste des lignes lues depuis le fichier de tâches
         
     Returns:
-        list: Liste de tuples (id: int, description: str) représentant les tâches
+        list: Liste de tuples (id: int, description: str, labels: list[str]) représentant les tâches, s'il n'y a pas d'étiquettes labels=[]
         
     Note:
         - Ignore les lignes vides
         - Ignore les lignes mal formatées (sans ';' ou avec ID non numérique)
         - Le format attendu est "ID;Description"
         
-    Example:
-        >>> parse_tasks(["1;Faire les courses", "2;Réviser"])
-        [(1, 'Faire les courses'), (2, 'Réviser')]
+    Exemple:
+        >>> parse_tasks(["1;Faire les courses;None", "2;Réviser;Urgent"])
+        [(1, 'Faire les courses', []), (2, 'Réviser', ['Urgent'])]
     """
     parsed_tasks = []
     for line in tasks:
         line = line.strip()
-        if line:  # Ignore empty lines
-            parts = line.split(";", 1)
-            if len(parts) == 2:
+        if line:  # Ignore les lignes vides
+            parts = line.split(";", 2)
+            if len(parts) == 3:
                 try:
                     tid = int(parts[0])
-                    parsed_tasks.append((tid, parts[1]))
+                    labels = [] if parts[2] == "None" else parts[2].split(",")
+                    parsed_tasks.append((tid, parts[1], labels))
                 except ValueError:
                     # Ignore les lignes avec un ID non numérique
                     continue
     return parsed_tasks
 
 
-def add(tasks, details):
+def add(tasks, details, labels = None):
     """
     Ajoute une nouvelle tâche avec un ID auto-incrémenté.
     
     Args:
         tasks (list): Liste des lignes existantes du fichier de tâches
         details (str): Description de la nouvelle tâche
+        labels (list[str], optional): Liste d'étiquette(s) de la nouvelle tâche, None si aucune 
         
     Returns:
-        tuple: (new_id: int, description: str, task_line: str)
+        tuple: (new_id: int, description: str, label: list, task_line: str)
             - new_id: L'ID assigné à la nouvelle tâche
             - description: La description de la tâche
+            - label: Liste des étiquettes, vide si aucune
             - task_line: La ligne formatée à écrire dans le fichier
             
     Note:
@@ -64,8 +63,8 @@ def add(tasks, details):
         - La ligne retournée inclut le saut de ligne final
         
     Example:
-        >>> add(["1;Tâche existante"], "Nouvelle tâche")
-        (2, 'Nouvelle tâche', '2;Nouvelle tâche\\n')
+        >>> add(["1;Tâche existante;None"], "Nouvelle tâche", ["étiquette"])
+        (2, 'Nouvelle tâche', ['étiquette'], '2;Nouvelle tâche;étiquette\n')
     """
     # Trouve le prochain ID disponible en analysant les tâches existantes
     parsed_tasks = parse_tasks(tasks)
@@ -76,10 +75,18 @@ def add(tasks, details):
     else:
         # Premier ID si aucune tâche n'existe
         new_id = 1
+
+    # Réécriture de labels
+    if labels == None:
+        labels_list = []
+    else:
+        labels_list = labels
     
+    labels_str = ",".join(labels_list) if labels_list else "None"
+
     # Formate la ligne pour l'écriture dans le fichier
-    new_task_line = f"{new_id};{details}\n"
-    return (new_id, details, new_task_line)
+    new_task_line = f"{new_id};{details};{labels_str}\n"
+    return (new_id, details, labels_list, new_task_line)
 
 
 def modify(tasks, task_id, new_details):
@@ -94,7 +101,7 @@ def modify(tasks, task_id, new_details):
     Returns:
         tuple: (found: bool, updated_tasks: list)
             - found: True si la tâche a été trouvée et modifiée, False sinon
-            - updated_tasks: Liste des tâches avec la modification appliquée
+            - updated_tasks: Liste des tâches mis à jour
             
     Note:
         - L'ID peut être fourni comme string ou int, il sera converti
@@ -102,8 +109,8 @@ def modify(tasks, task_id, new_details):
         - La liste retournée contient toutes les tâches, modifiée incluse
         
     Example:
-        >>> modify(["1;Ancienne tâche"], "1", "Nouvelle description")
-        (True, [(1, 'Nouvelle description')])
+        >>> modify(["1;Ancienne tâche;None"], "1", "Nouvelle description")
+        (True, [(1, 'Nouvelle description', [])])
     """
     # Validation et conversion de l'ID
     try:
@@ -117,13 +124,14 @@ def modify(tasks, task_id, new_details):
     found = False
     
     # Recherche et modification de la tâche correspondante
-    for i, (tid, desc) in enumerate(parsed_tasks):
+    for i, (tid, desc, lab) in enumerate(parsed_tasks):
         if tid == task_id:
-            parsed_tasks[i] = (tid, new_details)
+            parsed_tasks[i] = (tid, new_details, lab)
             found = True
             break
     
     return found, parsed_tasks
+    
 def rm(tasks, task_id):
     """
     Supprime une tâche par son ID.
@@ -135,7 +143,7 @@ def rm(tasks, task_id):
     Returns:
         tuple: (found: bool, remaining_tasks: list)
             - found: True si la tâche a été trouvée et supprimée, False sinon
-            - remaining_tasks: Liste des tâches restantes après suppression
+            - remaining_tasks: Liste des tâches restantes
             
     Note:
         - L'ID peut être fourni comme string ou int, il sera converti
@@ -143,8 +151,8 @@ def rm(tasks, task_id):
         - Les IDs des autres tâches ne sont pas réassignés
         
     Example:
-        >>> rm(["1;Tâche 1", "2;Tâche 2"], "1")
-        (True, [(2, 'Tâche 2')])
+        >>> rm(["1;Tâche 1;None", "2;Tâche 2;None"], "1")
+        (True, [(2, 'Tâche 2', [])])
     """
     # Validation et conversion de l'ID
     try:
@@ -158,12 +166,162 @@ def rm(tasks, task_id):
     original_length = len(parsed_tasks)
     
     # Filtre les tâches pour enlever celle avec l'ID spécifié
-    filtered_tasks = [(tid, desc) for tid, desc in parsed_tasks if tid != task_id]
+    filtered_tasks = [(tid, desc, lab) for tid, desc, lab in parsed_tasks if tid != task_id]
     
     # Détermine si une tâche a été supprimée
     found = len(filtered_tasks) < original_length
     return found, filtered_tasks
             
+def addLabel(tasks, task_id, labels):
+    """
+    Ajoute une ou plusieurs étiquette(s) à une tâche existante.
+
+    Args:
+        tasks (list): Liste des lignes existantes du fichier de tâches
+        task_id (str|int): ID de la tâche à modifier
+        labels (list[str]): Liste d'étiquette(s) à ajouter
+
+    Returns:
+        tuple: (found: bool, updated_tasks: list)
+            - found: True si la tâche a été trouvée et modifiée, False sinon
+            - updated_tasks: Liste des tuples (id: int, description: str, labels: list[str]) représentant toutes les tâches
+
+    Note:
+        - L'ID peut être fourni comme string ou int, il sera converti
+        - Si l'ID n'est pas numérique, retourne (False, [])
+        - La liste retournée contient toutes les tâches, ajout inclus
+        
+    Example:
+        >>> addLabel(["1;Ancienne tâche;None"], "1", ["étiquette1", "étiquette2"])
+        (True, [(1, 'Ancienne tâche', ['étiquette1', 'étiquette2'])])
+    """
+
+    # Validation et conversion de l'ID
+    try:
+        task_id = int(task_id)
+    except ValueError:
+        # ID invalide (non numérique)
+        return False, []
+        
+    # Parse les tâches existantes
+    parsed_tasks = parse_tasks(tasks)
+    found = False
+    
+    # Recherche et modification de la tâche correspondante
+    for i, (tid, desc, lab) in enumerate(parsed_tasks):
+        if tid == task_id:
+            # Initialisation de la liste des étiquettes
+            new_lab = [] if lab is None else lab[:]
+            for label in labels:
+                new_lab.append(label)
+            # Modification de la tâche en supprimant les doublons des étiquettes (s'il y en a)
+            parsed_tasks[i] = (tid, desc, new_lab)
+            found = True
+            break
+    
+    return found, parsed_tasks
+
+
+
+def rmLabel(tasks, task_id):
+    """
+    Supprime une étiquette d'une tâche existante en demandant à l'utilisateur quelle étiquette supprimer
+
+    Args:
+        tasks (list): Liste des lignes existantes du fichier de tâches
+        task_id (str|int): ID de la tâche à modifier
+
+    Returns:
+        tuple: (found: bool, updated_tasks: list)
+            - found: True si la tâche a été trouvée et modifiée, False sinon
+            - updated_tasks: Liste des tuples (id: int, description: str, labels: list[str]) représentant toutes les tâches 
+            
+    Note:
+        - L'ID peut être fourni comme string ou int, il sera converti
+        - Si l'ID n'est pas numérique, retourne (False, tâches_originales)
+        - Ne gère pas une mauvaise entrée de l'utilisateur (non entier)
+        
+    Example:
+        >>> rmLabel(["1;Tâche 1;None", "2;Tâche 2;Etiquette1, Etiquette2"], "1")
+        1: Etiquette1, 2: Etiquette2
+        >>> 1
+        (True, [(1, 'Tâche 1', []), (2, 'Tâche 2', ["Etiquette2"])])
+    """
+    
+    # Validation et conversion de l'ID
+    try:
+        task_id = int(task_id)
+    except ValueError:
+        # ID invalide (non numérique)
+        return False, []
+        
+    # Parse les tâches existantes
+    parsed_tasks = parse_tasks(tasks)
+    found = False
+    
+    # Recherche et modification de la tâche correspondante
+    for i, (tid, desc, lab) in enumerate(parsed_tasks):
+        if tid == task_id:
+            if lab:
+                print("Étiquettes de la tâche :")
+                for j, label in enumerate(lab):
+                    print(f"{j}: {label}")
+                n = int(input("Entrez le numéro de l'étiquette à supprimer : "))
+                while n < 0 or n > len(lab)-1:
+                    n = int(input("Le numéro n'est pas valide, entrez le numéro de l'étiquette à supprimer : "))
+            
+                # Suppression de l'étiquette
+                lab.pop(n)
+                parsed_tasks[i] = (tid, desc, lab)
+            else:
+                print("Cette tâche n'a pas d'étiquettes à supprimer")
+            found = True
+            break
+    
+    return found, parsed_tasks
+
+
+def clearLabel(tasks, task_id):
+    """
+    Supprime l'ensemble des étiquettes d'une tâche en utilisant son ID
+
+    Args:
+        tasks (list): Liste des lignes existantes du fichier de tâches
+        task_id (str|int): ID de la tâche à modifier
+
+    Returns:
+        tuple: (found: bool, updated_tasks: list)
+            - found: True si la tâche a été trouvée et modifiée, False sinon
+            - updated_tasks: Liste des tuples (id: int, description: str, labels: list[str]) représentant toutes les tâches
+            
+    Note:
+        - L'ID peut être fourni comme string ou int, il sera converti
+        - Si l'ID n'est pas numérique, retourne (False, tâches_originales)
+        
+    Example:
+        >>> clearLabel(["1;Tâche 1;None", "2;Tâche 2;Etiquette1, Etiquette2"], "2")
+        (True, [(1, 'Tâche 1', []), (2, 'Tâche 2', [])])
+    """
+    
+    # Validation et conversion de l'ID
+    try:
+        task_id = int(task_id)
+    except ValueError:
+        # ID invalide (non numérique)
+        return False, []
+        
+    # Parse les tâches existantes
+    parsed_tasks = parse_tasks(tasks)
+    found = False
+    
+    # Recherche et modification de la tâche correspondante
+    for i, (tid, desc, lab) in enumerate(parsed_tasks):
+        if tid == task_id:
+            parsed_tasks[i] = (tid, desc, [])
+            found = True
+            break
+    
+    return found, parsed_tasks
 
 def show(tasks):
     """
@@ -179,18 +337,18 @@ def show(tasks):
         - Affiche "No tasks found." si aucune tâche n'existe
         - Le tableau s'adapte automatiquement à la longueur des descriptions
         - Les tâches sont automatiquement triées par ID croissant
-        - Format du tableau: +-----+-------------+
-                           | id  | description |
-                           +-----+-------------+
+        - Format du tableau: +-----+-------------+-----------------------------------------+
+                             | id  | description | étiquette1, étiquette2, ..., étiquetten |
+                             +-----+-------------+-----------------------------------------+
                            
     Example:
-        >>> show(["2;Seconde tâche", "1;Première tâche"])
-        +-----+---------------+
-        | id  | description   |
-        +-----+---------------+
-        | 1   | Première tâche|
-        | 2   | Seconde tâche |
-        +-----+---------------+
+        >>> show(["2;Seconde tâche;None", "1;Première tâche;étiquette1,étiquette2"])
+        +-----+---------------+------------------------+
+        | id  | description   | étiquettes             |
+        +-----+---------------+------------------------+
+        | 1   | Première tâche| étiquette1, étiquette2 |
+        | 2   | Seconde tâche | None                   |
+        +-----+---------------+------------------------+
     """
     # Parse et vérifie s'il y a des tâches
     parsed_tasks = parse_tasks(tasks)
@@ -202,19 +360,24 @@ def show(tasks):
     sorted_tasks = sorted(parsed_tasks, key=lambda x: x[0])
     
     # Calcule la largeur optimale pour la colonne description
-    max_desc_length = max(len(desc) for _, desc in sorted_tasks) if sorted_tasks else 10
+    max_desc_length = max(len(desc) for _, desc, _ in sorted_tasks) if sorted_tasks else 10
     max_desc_length = max(max_desc_length, 11)  # Largeur minimale pour "description"
     
+    # Calcule la largeur optimale pour la colonne étiquette(s)
+    max_lab_length = max(len(", ".join(lab)) for _, _, lab in sorted_tasks) if sorted_tasks else 11
+    max_lab_length = max(max_lab_length, 12)  # Largeur minimale pour "étiquette(s)"
+
     # Construction et affichage du tableau
-    border_line = f"+-----+{'-' * (max_desc_length + 2)}+"
-    header_line = f"| {'id':<3} | {'description':<{max_desc_length}} |"
+    border_line = f"+-----+{'-' * (max_desc_length + 2)}+{'-' * (max_lab_length + 2)}+"
+    header_line = f"| {'id':<3} | {'description':<{max_desc_length}} | {'étiquette(s)':<{max_lab_length}} |"
     
     print(border_line)
     print(header_line)
     print(border_line)
     
     # Affichage de chaque tâche
-    for task_id, description in sorted_tasks:
-        print(f"| {task_id:<3} | {description:<{max_desc_length}} |")
+    for task_id, description, labels in sorted_tasks:
+        labels_str = ", ".join(labels) if labels else "None"
+        print(f"| {task_id:<3} | {description:<{max_desc_length}} | {labels_str:{max_lab_length}} |")
     
     print(border_line)

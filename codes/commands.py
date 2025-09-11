@@ -1,6 +1,4 @@
 """
-Commands module for task management CLI.
-
 Ce module implémente l'interface entre la ligne de commande et la logique métier.
 Il gère les opérations sur les fichiers et l'affichage des messages utilisateur.
 
@@ -8,14 +6,12 @@ Chaque fonction correspond à une commande CLI et gère:
 - La lecture/écriture des fichiers de tâches
 - L'affichage des messages de succès/erreur
 - La coordination avec le module core pour la logique métier
-
-Auteurs: Groupe 4 - Codecamp
 """
 
 import core
 
 
-def add(details, filename, tasks):
+def add(details, filename, tasks, labels = None):
     """
     Commande CLI pour ajouter une nouvelle tâche.
     
@@ -23,24 +19,28 @@ def add(details, filename, tasks):
         details (str): Description de la nouvelle tâche
         filename (str): Chemin vers le fichier de tâches
         tasks (list): Liste des lignes existantes du fichier
+        labels (str, optional) : Etiquette(s) de la nouvelle tâche, None si aucune
         
     Side Effects:
         - Ajoute une ligne au fichier spécifié
         - Affiche un message de confirmation avec l'ID assigné
         
     Example:
-        >>> add("Faire les courses", "tasks.txt", [])
-        Successfully added task 1 (Faire les courses)
+        >>> add("Faire les courses", "tasks.txt", [], "important")
+        Successfully added task 1 (Faire les courses: important)
     """
     # Utilise la logique métier pour créer la nouvelle tâche
-    task_id, description, task_line = core.add(tasks, details)
+    task_id, description, labels_list, task_line = core.add(tasks, details, labels)
     
     # Ajoute la tâche au fichier (mode append)
     with open(filename, 'a') as f:
         f.write(task_line)
     
+    # Gestion des étiquettes
+    labels_str = ",".join(labels_list) if labels_list else "None"
+
     # Confirmation à l'utilisateur
-    print(f"Successfully added task {task_id} ({description})")
+    print(f"Successfully added task {task_id} ({description}: {labels_str})")
 
 def modify(task_id, new_details, filename, tasks):
     """
@@ -60,7 +60,7 @@ def modify(task_id, new_details, filename, tasks):
         Le fichier est entièrement réécrit pour maintenir la cohérence.
         
     Example:
-        >>> modify("1", "Nouvelle description", "tasks.txt", ["1;Ancienne"])
+        >>> modify("1", "Nouvelle description", "tasks.txt", ["1;Ancienne;None"])
         Task 1 modified.
     """
     # Utilise la logique métier pour modifier la tâche
@@ -69,8 +69,10 @@ def modify(task_id, new_details, filename, tasks):
     if found:
         # Réécrit tout le fichier avec les tâches mises à jour
         with open(filename, 'w') as f:
-            for tid, desc in updated_tasks:
-                f.write(f"{tid};{desc}\n")
+            for tid, desc, lab in updated_tasks:
+                # Gestion des étiquettes
+                labels_str = ",".join(lab) if lab else "None"
+                f.write(f"{tid};{desc};{labels_str}\n")
         print(f"Task {task_id} modified.")
     else:
         # Message d'erreur si la tâche n'existe pas
@@ -93,7 +95,7 @@ def rm(task_id, filename, tasks):
         Les IDs des autres tâches ne sont pas modifiés après suppression.
         
     Example:
-        >>> rm("1", "tasks.txt", ["1;Tâche à supprimer", "2;Autre tâche"])
+        >>> rm("1", "tasks.txt", ["1;Tâche à supprimer;None", "2;Autre tâche;None"])
         Task 1 removed.
     """
     # Utilise la logique métier pour supprimer la tâche
@@ -102,12 +104,124 @@ def rm(task_id, filename, tasks):
     if found:
         # Réécrit le fichier avec les tâches restantes
         with open(filename, 'w') as f:
-            for tid, desc in remaining_tasks:
-                f.write(f"{tid};{desc}\n")
+            for tid, desc, lab in remaining_tasks:
+                # Gestion des étiquettes
+                labels_str = ",".join(lab) if lab else "None"
+                f.write(f"{tid};{desc};{labels_str}\n")
         print(f"Task {task_id} removed.")
     else:
         # Message d'erreur si la tâche n'existe pas
         print(f"Error: task id {task_id} not found.")
+
+def addLabel(task_id, new_labels, filename, tasks):
+    """
+    Commande CLI pour ajouter une étiquette à une tâche existante.
+    
+    Args:
+        task_id (str): ID de la tâche à modifier
+        new_labels (list[str]): Etiquette(s) à ajouter à la tâche
+        filename (str): Chemin vers le fichier de tâches
+        tasks (list): Liste des lignes existantes du fichier
+        
+    Side Effects:
+        - Réécrit entièrement le fichier avec les modifications
+        - Affiche un message de succès ou d'erreur
+        
+    Note:
+        Le fichier est entièrement réécrit pour maintenir la cohérence.
+        
+    Example:
+        >>> addLabel("1", "Etiquette", "tasks.txt", ["1;Ancienne;None"])
+        Labels added.
+    """
+
+    # Utilise la logique métier pour modifier la tâche
+    found, updated_tasks = core.addLabel(tasks, task_id, new_labels)
+    
+    if found:
+        # Réécrit tout le fichier avec les tâches mises à jour
+        with open(filename, 'w') as f:
+            for tid, desc, lab in updated_tasks:
+                # Gestion des étiquettes
+                labels_str = ",".join(lab) if lab else "None"
+                f.write(f"{tid};{desc};{labels_str}\n")
+        print(f"Labels added.")
+    else:
+        # Message d'erreur si la tâche n'existe pas
+        print(f"Error: task id {task_id} not found.")
+
+def rmLabel(task_id, filename, tasks):
+    """
+    Commande CLI pour supprimer une étiquette d'une tâche existante.
+    
+    Args:
+        task_id (str): ID de la tâche à modifier
+        filename (str): Chemin vers le fichier de tâches
+        tasks (list): Liste des lignes existantes du fichier
+        
+    Side Effects:
+        - Réécrit entièrement le fichier avec les modifications
+        - Affiche un message de succès ou d'erreur
+        
+    Note:
+        Le fichier est entièrement réécrit pour maintenir la cohérence.
+        
+    Example:
+        >>> rmLabel("1", "tasks.txt", ["1;Ancienne;etiquette"])
+        Label deleted.
+    """
+
+    # Utilise la logique métier pour modifier la tâche
+    found, updated_tasks = core.rmLabel(tasks, task_id)
+    
+    if found:
+        # Réécrit tout le fichier avec les tâches mises à jour
+        with open(filename, 'w') as f:
+            for tid, desc, lab in updated_tasks:
+                # Gestion des étiquettes
+                labels_str = ",".join(lab) if lab else "None"
+                f.write(f"{tid};{desc};{labels_str}\n")
+        print(f"Label deleted.")
+    else:
+        # Message d'erreur si la tâche n'existe pas
+        print(f"Error: task id {task_id} not found.")
+
+def clearLabel(task_id, filename, tasks):
+    """
+    Commande CLI pour supprimer toutes les étiquettes d'une tâche existante.
+    
+    Args:
+        task_id (str): ID de la tâche à modifier
+        filename (str): Chemin vers le fichier de tâches
+        tasks (list): Liste des lignes existantes du fichier
+        
+    Side Effects:
+        - Réécrit entièrement le fichier avec les modifications
+        - Affiche un message de succès ou d'erreur
+        
+    Note:
+        Le fichier est entièrement réécrit pour maintenir la cohérence.
+        
+    Example:
+        >>> clearLabel("1", "tasks.txt", ["1;Ancienne;etiquette"])
+        Labels deleted.
+    """
+    
+    # Utilise la logique métier pour modifier la tâche
+    found, updated_tasks = core.clearLabel(tasks, task_id)
+    
+    if found:
+        # Réécrit tout le fichier avec les tâches mises à jour
+        with open(filename, 'w') as f:
+            for tid, desc, lab in updated_tasks:
+                # Gestion des étiquettes
+                labels_str = ",".join(lab) if lab else "None"
+                f.write(f"{tid};{desc};{labels_str}\n")
+        print(f"Labels deleted.")
+    else:
+        # Message d'erreur si la tâche n'existe pas
+        print(f"Error: task id {task_id} not found.")
+
 
 def show(tasks):
     """
@@ -124,13 +238,13 @@ def show(tasks):
         Délègue l'affichage au module core qui gère le formatage du tableau.
         
     Example:
-        >>> show(["1;Première tâche", "2;Seconde tâche"])
-        +-----+---------------+
-        | id  | description   |
-        +-----+---------------+
-        | 1   | Première tâche|
-        | 2   | Seconde tâche |
-        +-----+---------------+
+        >>> show(["1;Première tâche;étiquette1,étiquette2", "2;Seconde tâche;None"])
+        +-----+---------------+------------------------+
+        | id  | description   | étiquettes             |
+        +-----+---------------+------------------------+
+        | 1   | Première tâche| étiquette1, étiquette2 |
+        | 2   | Seconde tâche | None                   |
+        +-----+---------------+------------------------+
     """
     # Délègue l'affichage au module core
     core.show(tasks)

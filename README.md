@@ -48,11 +48,13 @@ python3 codes/task.py <fichier_taches> <commande> [arguments]
 
 1. **Ajouter une tâche**
    ```bash
-   python3 codes/task.py lestaches.txt add <description de la tâche>
+   python3 codes/task.py lestaches.txt add <description de la tâche> -l <étiquette(s) optionnelle(s)>
    ```
    Exemple :
    ```bash
    python3 codes/task.py lestaches.txt add "Faire les courses"
+   python3 codes/task.py lestaches.txt add "Faire les courses" -l "demain"
+   python3 codes/task.py lestaches.txt add "Faire les courses" -l "demain" "urgent"
    ```
 
 2. **Modifier une tâche**
@@ -73,48 +75,62 @@ python3 codes/task.py <fichier_taches> <commande> [arguments]
    python3 codes/task.py lestaches.txt rm 1
    ```
 
-4. **Afficher toutes les tâches**
+4. **Ajouter une étiquette**
+   ```bash
+   python3 codes/task.py lestaches.txt addLabel <id> <étiquette(s) à ajouter>
+   ```
+   Exemple :
+   ```bash
+   python3 codes/task.py lestaches.txt addLabel 1 "urgent"
+   ```
+
+5. **Supprimer une étiquette**
+   ```bash
+   python3 codes/task.py lestaches.txt rmLabel <id>
+   ```
+   La suppression se fait en deux temps, dans un premier on entre l'identifiant de la tâche à modifier, et dans un second temps, on choisit l'étiquette à supprimer en suivant les consignes affichées
+   
+   Exemple :
+   ```bash
+   >>> python3 codes/task.py lestaches.txt rmLabel 1
+   Étiquettes de la tâche :
+   0: étiquette 1
+   1: étiquette 2
+   2: étiquette 3
+   Entrez le numéro de l'étiquette à supprimer : 1
+   ```
+
+6. **Supprimer toutes les étiquettes**
+   ```bash
+   python3 codes/task.py lestaches.txt clearLabel <id>
+   ```
+   Exemple :
+   ```bash
+   python3 codes/task.py lestaches.txt clearLabel 1
+   ```
+
+7. **Afficher toutes les tâches**
    ```bash
    python3 codes/task.py lestaches.txt show
    ```
-
-### Exemple d'utilisation complète
-
-```bash
-# Ajouter quelques tâches
-python3 codes/task.py lestaches.txt add "Réviser pour l'examen"
-python3 codes/task.py lestaches.txt add "Rendre le rapport de projet"
-python3 codes/task.py lestaches.txt add "Préparer la présentation"
-
-# Afficher la liste
-python3 codes/task.py lestaches.txt show
-
-# Modifier une tâche
-python3 codes/task.py lestaches.txt modify 2 "Rendre le rapport de projet avant vendredi"
-
-# Supprimer une tâche
-python3 codes/task.py lestaches.txt rm 3
-
-# Afficher le résultat final
-python3 codes/task.py lestaches.txt show
-```
 
 ## Format de Fichier
 
 Les tâches sont stockées dans un fichier texte simple avec le format :
 ```
-ID;Description
+ID;Description;Etiquette 1,Etiquette 2, ...
 ```
 
 Exemple de contenu de fichier :
 ```
-1;Réviser pour l'examen
-2;Rendre le rapport de projet avant vendredi
+1;Réviser pour l'examen;Important
+2;Rendre le rapport de projet avant vendredi;None
 ```
 
 ## Fonctionnalités Implémentées
 
 - Commandes de base (add, modify, rm, show)
+- Commandes du niveau 1 (addLabel, rmLabel, clearLabel)
 - Gestion des erreurs (tâches non trouvées, fichiers inexistants)
 - IDs auto-incrémentés
 - Tri des tâches par ID lors de l'affichage
@@ -129,7 +145,8 @@ Exemple de contenu de fichier :
 - Code respectant les spécifications du codecamp
 
 **Phase 2 - Extensions futures** : **À VENIR**
-- Extensions à définir selon les tirages au sort des enseignants
+- Ajout de la notion d'étiquette et des commandes associées
+- Modifications des commandes de base pour prendre en compte les étiquettes
 
 ## Problèmes Connus
 
@@ -145,6 +162,7 @@ Le projet a été testé manuellement avec :
 - Gestion d'erreurs (IDs inexistants)
 - Création de nouveaux fichiers
 - Fichiers vides ou inexistants
+- Ajout et suppression d'étiquettes
 
 ## Utilisation de l'IA
 

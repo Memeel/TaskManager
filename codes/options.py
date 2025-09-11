@@ -1,6 +1,4 @@
 """
-Options module for command-line argument parsing.
-
 Ce module configure l'analyseur de ligne de commande en utilisant argparse.
 Il définit la structure des commandes disponibles et leurs arguments.
 
@@ -8,12 +6,13 @@ Structure CLI:
     python task.py <fichier> <commande> [arguments]
 
 Commandes disponibles:
-    - add <description>        : Ajoute une nouvelle tâche
-    - modify <id> <description>: Modifie une tâche existante
-    - rm <id>                 : Supprime une tâche
-    - show                    : Affiche toutes les tâches
-
-Auteurs: Groupe 4 - Codecamp
+    - add <description> -l <labels>       : Ajoute une nouvelle tâche
+    - modify <id> <description>           : Modifie une tâche existante
+    - rm <id>                             : Supprime une tâche
+    - addLabel <id> <labels>              : Ajoute une étiquette
+    - rmLabel <id>                        : Supprime une étiquette d'une tâche
+    - clearLabel <id>                     : Supprime toutes les étiquettes d'une tâche
+    - show                                : Affiche toutes les tâches
 """
 
 import argparse
@@ -29,12 +28,6 @@ def create_parser():
     Note:
         Utilise des sous-parseurs pour gérer les différentes commandes.
         Chaque commande a ses propres arguments spécifiques.
-        
-    Example:
-        >>> parser = create_parser()
-        >>> args = parser.parse_args(['tasks.txt', 'add', 'Nouvelle', 'tâche'])
-        >>> print(args.command, args.details)
-        add ['Nouvelle', 'tâche']
     """
     # Création du parseur principal
     parser = argparse.ArgumentParser(
@@ -60,13 +53,18 @@ def create_parser():
     parser_add = subparsers.add_parser(
         'add', 
         help='Ajouter une nouvelle tâche',
-        description='Ajoute une nouvelle tâche avec la description fournie'
+        description='Ajoute une nouvelle tâche avec la description fournie et son/ses étiquettes si fournie(s)'
     )
     parser_add.add_argument(
         'details', 
         nargs='*', 
         default=["no details"], 
         help="Description de la tâche (plusieurs mots acceptés)"
+    )
+    parser_add.add_argument(
+        '-l', '--labels',
+        nargs='*',
+        help='Etiquettes optionnelles pour la tâche'
     )
     
     # === Commande MODIFY ===
@@ -95,6 +93,43 @@ def create_parser():
     parser_rm.add_argument(
         'id', 
         help="ID numérique de la tâche à supprimer"
+    )
+
+    # === Commande ADDLABEL ===
+    parser_addLabel = subparsers.add_parser(
+        'addLabel',
+        help='Ajouter une étiquette',
+        description='Ajoute une étiquette à une tâche existante, la tâche peut avoir d\'autres étiquettes'
+    )
+    parser_addLabel.add_argument(
+        'id',
+        help="ID numérique de la tâche dont on souhaite ajouter une étiquette"
+    )
+    parser_addLabel.add_argument(
+        'labels',
+        help="Etiquette à ajouter à la tâche"
+    )
+
+    # === Commande RMLABEL ===
+    parser_rmLabel = subparsers.add_parser(
+        'rmLabel',
+        help="Supprimer une étiquette d'une tâche",
+        description="Supprime une étiquette d'une tâche existante en demandant à l'utilisateur quelle étiquette supprimer"
+    )
+    parser_rmLabel.add_argument(
+        'id',
+        help="ID numérique de la tâche"
+    )
+
+    # === Commande CLEARLABEL ===
+    parser_clearLabel = subparsers.add_parser(
+        'clearLabel',
+        help="Supprimer l'ensemble des étiquettes d'une tâche",
+        description="Supprime l'ensemble des étiquettes d'une tâche en utilisant son ID"
+    )
+    parser_clearLabel.add_argument(
+        'id',
+        help="ID numérique de la tâche dont on veut supprimer les étiquettes"
     )
     
     # === Commande SHOW ===
