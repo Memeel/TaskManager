@@ -37,8 +37,8 @@ def add(details, filename, tasks, labels = None):
     """
     # Utilise la logique métier pour créer la nouvelle tâche
     task_id, description, labels_list, task_line = core.add(tasks, details, labels)
-    with open("historique.txt", "a+") as h:
-        h.write(f"[This task has been added at {get_current_datetime()}] {task_id};{description};{labels_list}\n")
+    with open("historique.txt", "a") as h:
+        h.write(f"[This task has been added at {get_current_datetime()}] {task_line}")
     
     # Ajoute la tâche au fichier (mode append)
     with open(filename, 'a') as f:
@@ -84,10 +84,10 @@ def modify(task_id, new_details, filename, tasks):
         print(f"Task {task_id} modified.")
 
         # Enregistre les modifications dans l'historique
-        with open("historique.txt", 'a+') as h:
+        with open("historique.txt", 'a') as h:
             tid, desc, lab = old_task
             labels_str = ",".join(lab) if lab else "None" 
-            h.write(f"[The description of this task was modified on {get_current_datetime()}] {tid};{desc};{labels_str}\n")
+            h.write(f"[The description of this task was modified at {get_current_datetime()}] {tid};{desc};{labels_str}\n")
 
     else:
         # Message d'erreur si la tâche n'existe pas
@@ -125,10 +125,10 @@ def rm(task_id, filename, tasks):
                 f.write(f"{tid};{desc};{labels_str}\n")
         print(f"Task {task_id} removed.")
 
-        with open("historique.txt", 'a+') as h:
+        with open("historique.txt", 'a') as h:
             tid, desc, lab = old_task
             labels_str = ",".join(lab) if lab else "None" 
-            h.write(f"[This task was removed on {get_current_datetime()}] {tid};{desc};{labels_str}\n")
+            h.write(f"[This task was removed at {get_current_datetime()}] {tid};{desc};{labels_str}\n")
 
     else:
         # Message d'erreur si la tâche n'existe pas
@@ -174,10 +174,10 @@ def addLabel(task_id, new_labels, filename, tasks):
                 f.write(f"{tid};{desc};{labels_str}\n")
         print(f"Labels added successfully.")
 
-        with open("historique.txt", 'a+') as h:
+        with open("historique.txt", 'a') as h:
             tid, desc, lab = old_task
             labels_str = ",".join(lab) if lab else "None" 
-            h.write(f"[A label was added to this task on {get_current_datetime()}] {tid};{desc};{labels_str}\n")
+            h.write(f"[A label was added to this task at {get_current_datetime()}] {tid};{desc};{labels_str}\n")
 
     else:
         # Message d'erreur si la tâche n'existe pas
@@ -222,8 +222,8 @@ def rmLabel(task_id, filename, tasks):
         else:
             labels_str = "None"
 
-        with open("historique.txt", 'a+') as h:
-            h.write(f"[A label was removed from this task on {get_current_datetime()}] {old_id};{old_desc};{labels_str}\n")
+        with open("historique.txt", 'a') as h:
+            h.write(f"[A label was removed from this task at {get_current_datetime()}] {old_id};{old_desc};{labels_str}\n")
 
     else:
         # Message d'erreur si la tâche n'existe pas
@@ -262,10 +262,10 @@ def clearLabel(task_id, filename, tasks):
                 f.write(f"{tid};{desc};{labels_str}\n")
         print(f"All labels removed successfully.")
 
-        with open("historique.txt", 'a+') as h:
+        with open("historique.txt", 'a') as h:
             tid, desc, lab = old_task
             labels_str = ",".join(lab) if lab else "None" 
-            h.write(f"[All labels of this task were removed on {get_current_datetime()}] {tid};{desc};{labels_str}\n")
+            h.write(f"[All labels of this task were removed at {get_current_datetime()}] {tid};{desc};{labels_str}\n")
 
     else:
         # Message d'erreur si la tâche n'existe pas

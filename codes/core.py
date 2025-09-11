@@ -180,8 +180,8 @@ def rm(tasks, task_id):
     original_length = len(parsed_tasks)
     
     # Filtre les tâches pour enlever celle avec l'ID spécifié
+    filtered_tasks = []
     for (tid, desc, lab) in parsed_tasks:  
-        filtered_tasks = []
         if tid != task_id:
             filtered_tasks.append((tid, desc, lab))
         else:
