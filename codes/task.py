@@ -47,10 +47,10 @@ try:
         # Regarde si il y a une option label
         if options.labels:
             # Ajoute une nouvelle tâche
-            commands.add(' '.join(options.details), options.file, tasks, options.labels)
+            commands.add(' '.join(options.details), options.file, tasks, options.labels, options.statut)
         else:
             # Ajoute une nouvelle tâche
-            commands.add(' '.join(options.details), options.file, tasks)
+            commands.add(' '.join(options.details), options.file, tasks, statut = options.statut)
 
         
         

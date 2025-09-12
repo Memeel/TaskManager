@@ -17,7 +17,7 @@ def get_current_datetime():
     return now.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def add(details, filename, tasks, labels = None):
+def add(details, filename, tasks, labels = None, statut = "suspended"):
     """
     Commande CLI pour ajouter une nouvelle tâche.
     
@@ -36,7 +36,7 @@ def add(details, filename, tasks, labels = None):
         Successfully added task 1 (Faire les courses: important)
     """
     # Utilise la logique métier pour créer la nouvelle tâche
-    task_id, description, labels_list, task_line = core.add(tasks, details, labels)
+    task_id, description, labels_list, task_line = core.add(tasks, details, labels, statut)
     with open("historique.txt", "a") as h:
         h.write(f"[This task has been added at {get_current_datetime()}] {task_line}")
     
