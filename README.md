@@ -144,9 +144,10 @@ Exemple de contenu de fichier :
 - Tests manuels réussis
 - Code respectant les spécifications du codecamp
 
-**Phase 2 - Extensions futures** : **À VENIR**
+**Phase 2 - Extensions futures** : **EN COURS**
 - Ajout de la notion d'étiquette et des commandes associées
 - Modifications des commandes de base pour prendre en compte les étiquettes
+- La documentation du code n'est pas à jour
 
 ## Problèmes Connus
 

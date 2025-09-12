@@ -66,6 +66,10 @@ def create_parser():
         nargs='*',
         help='Etiquettes optionnelles pour la tâche'
     )
+    parser_add.add_argument(
+        '-s', '--status',
+        help='Statut de la tâche : started, suspended, completed ,cancelled (par défaut suspended)'
+    )
     
     # === Commande MODIFY ===
     parser_modify = subparsers.add_parser(
@@ -78,10 +82,14 @@ def create_parser():
         help="ID numérique de la tâche à modifier"
     )
     parser_modify.add_argument(
-        'details', 
+        '-d', '--details', 
         nargs='*', 
-        default=["no details"], 
+        default=None, 
         help="Nouvelle description de la tâche"
+    )
+    parser_modify.add_argument(
+        '-s', '--status',
+        help='Nouveau statut de la tâche'
     )
     
     # === Commande RM (Remove) ===
@@ -95,20 +103,25 @@ def create_parser():
         help="ID numérique de la tâche à supprimer"
     )
 
-    # === Commande ADDLABEL ===
-    parser_addLabel = subparsers.add_parser(
-        'addLabel',
-        help='Ajouter des étiquettes',
-        description='Ajoute une ou plusieurs étiquettes à une tâche existante (évite automatiquement les doublons)'
+    # === Commande ADD_OPTIONS ===
+    parser_add_options = subparsers.add_parser(
+        'add_options',
+        help='Ajouter des options (étiquettes ou dépendance)',
+        description='Ajoute des étiquettes ou des dépendances (évite automatiquement les doublons)'
     )
-    parser_addLabel.add_argument(
+    parser_add_options.add_argument(
         'id',
-        help="ID numérique de la tâche dont on souhaite ajouter des étiquettes"
+        help="ID numérique de la tâche dont on souhaite ajouter des options"
     )
-    parser_addLabel.add_argument(
-        'labels',
-        nargs='+',
-        help="Étiquette(s) à ajouter à la tâche (séparées par des espaces)"
+    parser_add_options.add_argument(
+        '-l', '--labels',
+        nargs='*',
+        help='Étiquette(s) à ajouter à la tâche'
+    )
+    parser_add_options.add_argument(
+        '-d', '--dependence',
+        type=int,
+        help="ID de la tâche dont on souhaite faire dépendre"
     )
 
     # === Commande RMLABEL ===
@@ -131,6 +144,17 @@ def create_parser():
     parser_clearLabel.add_argument(
         'id',
         help="ID numérique de la tâche dont on veut supprimer les étiquettes"
+    )
+
+    # === Commande RMDEP ===
+    parser_rmDep = subparsers.add_parser(
+        'rmDep',
+        help="Supprimer la dépendance d'une tâche",
+        description="Supprime la dépendance d'une tâche en utilisant son ID"
+    )
+    parser_rmDep.add_argument(
+        'id',
+        help="ID numérique de la tâche dont on veut supprimer la dépendance"
     )
     
     # === Commande SHOW ===

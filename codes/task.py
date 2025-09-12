@@ -43,27 +43,45 @@ try:
 
     ## Commandes de base
     if options.command == 'add':
-        # Regarde si il y a une option label
-        if options.labels:
+        # Disjonction de cas selon les options
+        if options.labels and options.status:
+            # Ajoute une nouvelle tâche
+            commands.add(' '.join(options.details), options.file, tasks, options.labels, options.status)
+        elif options.labels:
             # Ajoute une nouvelle tâche
             commands.add(' '.join(options.details), options.file, tasks, options.labels)
-        else:
+        elif options.status:
             # Ajoute une nouvelle tâche
+            commands.add(' '.join(options.details), options.file, tasks, status = options.status)
+        else:
             commands.add(' '.join(options.details), options.file, tasks)
 
         
-        
     elif options.command == 'modify':
-        # Modifie la description d'une tâche existante
-        commands.modify(options.id, ' '.join(options.details), options.file, tasks)
+        # Disjonction de cas selon les options
+        if options.details and options.status:
+            # Modifie la description d'une tâche existante
+            commands.modify(options.id, options.file, tasks, ' '.join(options.details), options.status)
+        elif options.details:
+            # Modifie la description d'une tâche existante
+            commands.modify(options.id, options.file, tasks, ' '.join(options.details))
+        elif options.status:
+            # Modifie la description d'une tâche existante
+            commands.modify(options.id, options.file, tasks, new_status = options.status)
+        else:
+            print("Erreur: Absence de description ou de statut à modifier")
         
     elif options.command == 'rm':
         # Supprime une tâche
         commands.rm(options.id, options.file, tasks)
 
-    elif options.command == 'addLabel':
-        # Ajoute une étiquette à une tâche existante (la tâche peut déjà avoir des étiquettes)
-        commands.addLabel(options.id, options.labels, options.file, tasks)
+    elif options.command == 'add_options':
+        # Prépare les labels et la dépendance
+        labels = options.labels if options.labels else None
+        dep = options.dependence if options.dependence else None
+
+        # Appelle la fonction une seule fois
+        commands.add_options(options.id, options.file, tasks, new_labels=labels, id_dep=dep)
       
     elif options.command == 'rmLabel':
         # Supprime une étiquette en demandant à l'utilisateur le label à supprimer
@@ -72,6 +90,10 @@ try:
     elif options.command == 'clearLabel':
         # Supprime l'ensemble des étiquettes d'une tâche
         commands.clearLabel(options.id, options.file, tasks)
+    
+    elif options.command == 'rmDep':
+        # Supprime la dépendance d'une tâche
+        commands.rmDep(options.id, options.file, tasks)
         
     ## Affichage
     elif options.command == 'show':
@@ -85,13 +107,13 @@ except FileNotFoundError:
         # Permet d'ajouter la première tâche dans un nouveau fichier
         labels = options.labels if hasattr(options, 'labels') and options.labels else None
         commands.add(' '.join(options.details), options.file, [], labels)
-    elif options.command == 'addLabel':
+    elif options.command == 'add_options':
         # Impossible d'ajouter une étiquette dans un fichier inexistant
         print(f"Error: The file {options.file} was not found")
     elif options.command == 'modify':
         # Impossible de modifier dans un fichier inexistant
         print(f"Error: The file {options.file} was not found")
-    elif options.command in ['rm', 'rmLabel', 'clearLabel']:
+    elif options.command in ['rm', 'rmLabel', 'clearLabel', 'rmDep']:
         # Impossible de supprimer dans un fichier inexistant
         print(f"Error: The file {options.file} was not found")
     elif options.command == 'show':
