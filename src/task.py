@@ -7,22 +7,24 @@ Ce script coordonne l'analyse des arguments, la lecture des fichiers et l'exécu
 des commandes de gestion de tâches.
 
 Usage:
-    python3 task.py <fichier> add <description> -l <etiquette1> <etiquette2> ...
-    python3 task.py <fichier> modify <id> <nouvelle_description>
-    python3 task.py <fichier> rm <id>
-    python3 task.py <fichier> addLabel <id> <etiquette1> <etiquette2> ...
-    python3 task.py <fichier> rmLabel <id>
-    python3 task.py <fichier> clearLabel <id>
-    python3 task.py <fichier> show
+    python task.py <fichier> add <description> -l <etiquette1> <etiquette2> ... -s <statut>
+    python task.py <fichier> modify <id> -d <nouvelle_description> -s <nouveau_statut>
+    python task.py <fichier> rm <id>
+    python task.py <fichier> add_options <id> -l <etiquette1> <etiquette2> ... -d <id_dependance>
+    python task.py <fichier> rmLabel <id>
+    python task.py <fichier> clearLabel <id>
+    python task.py <fichier> rmDep <id>
+    python task.py <fichier> show
 
 Exemples:
-    python3 task.py lestaches.txt add "Faire les courses" -l "demain"
-    python3 task.py lestaches.txt modify 1 "Faire les courses au supermarché"
-    python3 task.py lestaches.txt rm 1
-    python3 task.py lestaches.txt addLabel 1 urgent 
-    python3 task.py lestaches.txt rmLabel 1
-    python3 task.py lestaches.txt clearLabel 1
-    python3 task.py lestaches.txt show
+    python task.py lestaches.txt add "Faire les courses" -l demain urgent -s suspended
+    python task.py lestaches.txt modify 1 -d "Faire les courses au supermarché" -s started
+    python task.py lestaches.txt rm 1
+    python task.py lestaches.txt add_options 1 -l urgent -d 2
+    python task.py lestaches.txt rmLabel 1
+    python task.py lestaches.txt clearLabel 1
+    python task.py lestaches.txt rmDep 1
+    python task.py lestaches.txt show
 """
 
 import commands

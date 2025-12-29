@@ -25,11 +25,13 @@ def add(details, filename, tasks, labels = None, status = "suspended"):
         details (str): Description de la nouvelle tâche
         filename (str): Chemin vers le fichier de tâches
         tasks (list): Liste des lignes existantes du fichier
-        labels (str, optional) : Etiquette(s) de la nouvelle tâche, None si aucune
+        labels (list[str], optional): Etiquette(s) de la nouvelle tâche, None si aucune
+        status (str, optional): Statut initial de la tâche (défaut: "suspended")
         
     Side Effects:
-        - Ajoute une ligne au fichier spécifié
+        - Ajoute une ligne au fichier spécifié et à l'historique
         - Affiche un message de confirmation avec l'ID assigné
+        - Peut demander interactivement à l'utilisateur de définir une dépendance
     """
 
     # Utilise la logique métier pour créer la nouvelle tâche
@@ -60,12 +62,14 @@ def modify(task_id, filename, tasks, new_details = None, new_status = None):
     
     Args:
         task_id (str): ID de la tâche à modifier
-        new_details (str): Nouvelle description pour la tâche
         filename (str): Chemin vers le fichier de tâches
         tasks (list): Liste des lignes existantes du fichier
+        new_details (str, optional): Nouvelle description pour la tâche
+        new_status (str, optional): Nouveau statut pour la tâche
         
     Side Effects:
         - Réécrit entièrement le fichier avec les modifications
+        - Enregistre les modifications dans l'historique
         - Affiche un message de succès ou d'erreur
         
     Note:
@@ -153,12 +157,14 @@ def add_options(task_id, filename, tasks, new_labels = None, id_dep = None):
     
     Args:
         task_id (str): ID de la tâche à modifier
-        new_labels (str): Étiquette(s) à ajouter à la tâche (séparées par des espaces)
         filename (str): Chemin vers le fichier de tâches
         tasks (list): Liste des lignes existantes du fichier
+        new_labels (list[str], optional): Étiquette(s) à ajouter à la tâche
+        id_dep (int, optional): ID de la tâche dont dépend la tâche cible
         
     Side Effects:
         - Réécrit entièrement le fichier avec les modifications
+        - Enregistre les modifications dans l'historique
         - Affiche un message de succès ou d'erreur
         
     Note:

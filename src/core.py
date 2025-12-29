@@ -19,16 +19,18 @@ def parse_tasks(tasks):
         tasks (list): Liste des lignes lues depuis le fichier de tâches
         
     Returns:
-        list: Liste de tuples (id: int, description: str, labels: list[str]) représentant les tâches, s'il n'y a pas d'étiquettes labels=[]
+        list: Liste de tuples (id: int, description: str, labels: list[str], status: str, dependence: int|None) 
+              représentant les tâches. Si pas d'étiquettes, labels=[]. Si pas de dépendance, dependence=None.
         
     Note:
         - Ignore les lignes vides
         - Ignore les lignes mal formatées (sans ';' ou avec ID non numérique)
-        - Le format attendu est "ID;Description"
+        - Le format attendu est "ID;Description;Labels;Status;Dependence"
+        - Gère la rétrocompatibilité avec les anciens formats
         
     Exemple:
-        >>> parse_tasks(["1;Faire les courses;None", "2;Réviser;Urgent"])
-        [(1, 'Faire les courses', []), (2, 'Réviser', ['Urgent'])]
+        >>> parse_tasks(["1;Faire les courses;None;suspended;None", "2;Réviser;Urgent;started;1"])
+        [(1, 'Faire les courses', [], 'suspended', None), (2, 'Réviser', ['Urgent'], 'started', 1)]
     """
     
     parsed_tasks = []
@@ -73,23 +75,26 @@ def add(tasks, details, labels = None, status="suspended"):
     Args:
         tasks (list): Liste des lignes existantes du fichier de tâches
         details (str): Description de la nouvelle tâche
-        labels (list[str], optional): Liste d'étiquette(s) de la nouvelle tâche, None si aucune 
+        labels (list[str], optional): Liste d'étiquette(s) de la nouvelle tâche, None si aucune
+        status (str, optional): Statut initial de la tâche (défaut: "suspended")
         
     Returns:
-        tuple: (new_id: int, description: str, label: list, task_line: str)
+        tuple: (new_id: int, description: str, labels: list, task_line: str) ou (None, None, None, None) si annulé
             - new_id: L'ID assigné à la nouvelle tâche
             - description: La description de la tâche
-            - label: Liste des étiquettes, vide si aucune
-            - task_line: La ligne formatée à écrire dans le fichier
+            - labels: Liste des étiquettes, vide si aucune
+            - task_line: La ligne formatée à écrire dans le fichier (format: ID;Description;Labels;Status;Dependence)
             
     Note:
         - L'ID est calculé comme max(IDs existants) + 1
         - Si aucune tâche n'existe, l'ID commence à 1
+        - L'utilisateur peut définir une dépendance de manière interactive
         - La ligne retournée inclut le saut de ligne final
+        - Retourne (None, None, None, None) si l'utilisateur annule (Ctrl+C)
         
     Example:
-        >>> add(["1;Tâche existante;None"], "Nouvelle tâche", ["étiquette"])
-        (2, 'Nouvelle tâche', ['étiquette'], '2;Nouvelle tâche;étiquette\n')
+        >>> add(["1;Tâche existante;None;completed;None"], "Nouvelle tâche", ["urgent"], "suspended")
+        (2, 'Nouvelle tâche', ['urgent'], '2;Nouvelle tâche;urgent;suspended;None\n')
     """
 
     # Trouve le prochain ID disponible en analysant les tâches existantes
@@ -161,26 +166,29 @@ def add(tasks, details, labels = None, status="suspended"):
 
 def modify(tasks, task_id, new_details = None, new_status = None):
     """
-    Modifie la description d'une tâche existante par son ID.
+    Modifie la description et/ou le statut d'une tâche existante par son ID.
     
     Args:
         tasks (list): Liste des lignes existantes du fichier de tâches
         task_id (str|int): ID de la tâche à modifier
-        new_details (str): Nouvelle description pour la tâche
+        new_details (str, optional): Nouvelle description pour la tâche
+        new_status (str, optional): Nouveau statut pour la tâche (started, suspended, completed, cancelled)
         
     Returns:
         tuple: (found: bool, updated_tasks: list, old_task: tuple)
             - found: True si la tâche a été trouvée et modifiée, False sinon
-            - updated_tasks: Liste des tâches mis à jour
-            - old_task: Tuple (id, desc, lab) correspondant à l'ancienne tâche
+            - updated_tasks: Liste des tâches mises à jour (tuples à 5 éléments)
+            - old_task: Tuple (id, desc, lab, status, dep) correspondant à l'ancienne tâche
+            
     Note:
         - L'ID peut être fourni comme string ou int, il sera converti
-        - Si l'ID n'est pas numérique, retourne (False, [])
+        - Si l'ID n'est pas numérique, retourne (False, [], None)
+        - Vérifie les dépendances avant de permettre le passage au statut "started"
         - La liste retournée contient toutes les tâches, modifiée incluse
         
     Example:
-        >>> modify(["1;Ancienne tâche;None"], "1", "Nouvelle description")
-        (True, [(1, 'Nouvelle description', [])])
+        >>> modify(["1;Ancienne tâche;None;suspended;None"], "1", "Nouvelle description", "started")
+        (True, [(1, 'Nouvelle description', [], 'started', None)], (1, 'Ancienne tâche', [], 'suspended', None))
     """
 
     # Validation et conversion de l'ID
@@ -242,7 +250,7 @@ def modify(tasks, task_id, new_details = None, new_status = None):
     
 def rm(tasks, task_id):
     """
-    Supprime une tâche par son ID.
+    Supprime une tâche par son ID et met à jour les dépendances.
     
     Args:
         tasks (list): Liste des lignes existantes du fichier de tâches
@@ -251,17 +259,18 @@ def rm(tasks, task_id):
     Returns:
         tuple: (found: bool, remaining_tasks: list, old_task: tuple)
             - found: True si la tâche a été trouvée et supprimée, False sinon
-            - remaining_tasks: Liste des tâches restantes
-            - old_task: Tuple (id, desc, lab) correspondant à l'ancienne tâche
+            - remaining_tasks: Liste des tâches restantes (tuples à 5 éléments)
+            - old_task: Tuple (id, desc, lab, status, dep) correspondant à la tâche supprimée
             
     Note:
         - L'ID peut être fourni comme string ou int, il sera converti
-        - Si l'ID n'est pas numérique, retourne (False, tâches_originales)
+        - Si l'ID n'est pas numérique, retourne (False, tâches_originales, None)
         - Les IDs des autres tâches ne sont pas réassignés
+        - Les dépendances vers la tâche supprimée sont automatiquement retirées
         
     Example:
-        >>> rm(["1;Tâche 1;None", "2;Tâche 2;None"], "1")
-        (True, [(2, 'Tâche 2', [])])
+        >>> rm(["1;Tâche 1;None;completed;None", "2;Tâche 2;None;suspended;1"], "1")
+        (True, [(2, 'Tâche 2', [], 'suspended', None)], (1, 'Tâche 1', [], 'completed', None))
     """
 
     # Validation et conversion de l'ID
@@ -308,11 +317,20 @@ def add_options(tasks, task_id, labels=None, id_dep=None):
     Args:
         tasks (list): Liste des lignes existantes du fichier de tâches
         task_id (str|int): ID de la tâche à modifier
-        labels (list[str], optional): Liste d'étiquette(s) à ajouter
+        labels (list[str], optional): Liste d'étiquette(s) à ajouter (évite les doublons)
         id_dep (int, optional): ID de la tâche dont dépend la tâche cible
 
     Returns:
         tuple: (found: bool, updated_tasks: list, old_task: tuple)
+            - found: True si la tâche a été trouvée et modifiée, False sinon
+            - updated_tasks: Liste des tâches mises à jour (tuples à 5 éléments)
+            - old_task: Tuple (id, desc, lab, status, dep) correspondant à l'ancienne tâche
+            
+    Note:
+        - L'ID peut être fourni comme string ou int, il sera converti
+        - Les étiquettes en doublon sont automatiquement ignorées
+        - Si une dépendance existe déjà, demande confirmation à l'utilisateur
+        - Si l'ID n'est pas numérique, retourne (False, [], None)
     """
 
     # Validation et conversion de l'ID
@@ -359,7 +377,7 @@ def add_options(tasks, task_id, labels=None, id_dep=None):
 
 def rmLabel(tasks, task_id):
     """
-    Supprime une étiquette d'une tâche existante en demandant à l'utilisateur quelle étiquette supprimer
+    Supprime une étiquette d'une tâche existante en demandant à l'utilisateur quelle étiquette supprimer.
 
     Args:
         tasks (list): Liste des lignes existantes du fichier de tâches
@@ -368,18 +386,21 @@ def rmLabel(tasks, task_id):
     Returns:
         tuple: (found: bool, updated_tasks: list, old_task: tuple)
             - found: True si la tâche a été trouvée et modifiée, False sinon
-            - updated_tasks: Liste des tuples (id: int, description: str, labels: list[str]) représentant toutes les tâches 
-            - old_task: Tuple (id, desc, lab) correspondant à l'ancienne tâche
+            - updated_tasks: Liste des tâches mises à jour (tuples à 5 éléments)
+            - old_task: Tuple (id, desc, lab, status, dep) correspondant à l'ancienne tâche
+            
     Note:
         - L'ID peut être fourni comme string ou int, il sera converti
-        - Si l'ID n'est pas numérique, retourne (False, tâches_originales)
-        - Ne gère pas une mauvaise entrée de l'utilisateur (non entier)
+        - Si l'ID n'est pas numérique, retourne (False, [], None)
+        - Demande interactivement à l'utilisateur quelle étiquette supprimer
+        - Gère la validation robuste de l'entrée utilisateur
+        - Retourne (False, parsed_tasks, None) si l'utilisateur annule (Ctrl+C)
         
     Example:
-        >>> rmLabel(["1;Tâche 1;None", "2;Tâche 2;Etiquette1, Etiquette2"], "1")
-        1: Etiquette1, 2: Etiquette2
-        >>> 1
-        (True, [(1, 'Tâche 1', []), (2, 'Tâche 2', ["Etiquette2"])])
+        >>> rmLabel(["1;Tâche 1;None;suspended;None", "2;Tâche 2;tag1,tag2;started;None"], "2")
+        # Affiche: 0: tag1, 1: tag2
+        # Utilisateur entre: 0
+        (True, [(1, 'Tâche 1', [], 'suspended', None), (2, 'Tâche 2', ['tag2'], 'started', None)], (2, 'Tâche 2', ['tag1', 'tag2'], 'started', None))
     """
     
     # Validation et conversion de l'ID
@@ -429,7 +450,7 @@ def rmLabel(tasks, task_id):
 
 def clearLabel(tasks, task_id):
     """
-    Supprime l'ensemble des étiquettes d'une tâche en utilisant son ID
+    Supprime l'ensemble des étiquettes d'une tâche en utilisant son ID.
 
     Args:
         tasks (list): Liste des lignes existantes du fichier de tâches
@@ -438,16 +459,16 @@ def clearLabel(tasks, task_id):
     Returns:
         tuple: (found: bool, updated_tasks: list, old_task: tuple)
             - found: True si la tâche a été trouvée et modifiée, False sinon
-            - updated_tasks: Liste des tuples (id: int, description: str, labels: list[str]) représentant toutes les tâches
-            - old_task: Tuple (id, desc, lab) correspondant à l'ancienne tâche
+            - updated_tasks: Liste des tâches mises à jour (tuples à 5 éléments)
+            - old_task: Tuple (id, desc, lab, status, dep) correspondant à l'ancienne tâche
 
     Note:
         - L'ID peut être fourni comme string ou int, il sera converti
-        - Si l'ID n'est pas numérique, retourne (False, tâches_originales)
+        - Si l'ID n'est pas numérique, retourne (False, [], None)
         
     Example:
-        >>> clearLabel(["1;Tâche 1;None", "2;Tâche 2;Etiquette1, Etiquette2"], "2")
-        (True, [(1, 'Tâche 1', []), (2, 'Tâche 2', [])])
+        >>> clearLabel(["1;Tâche 1;None;suspended;None", "2;Tâche 2;tag1,tag2;started;None"], "2")
+        (True, [(1, 'Tâche 1', [], 'suspended', None), (2, 'Tâche 2', [], 'started', None)], (2, 'Tâche 2', ['tag1', 'tag2'], 'started', None))
     """
     
     # Validation et conversion de l'ID
@@ -482,16 +503,16 @@ def rmDep(tasks, task_id):
     Returns:
         tuple: (found: bool, updated_tasks: list, old_task: tuple)
             - found: True si la tâche a été trouvée et modifiée, False sinon
-            - updated_tasks: Liste des tuples (id: int, description: str, labels: list[str], status: str, dep) représentant toutes les tâches
-            - old_task: Tuple (id, desc, lab, status, dep) correspondant à l'ancienne tâche avant suppression de la dépendance
+            - updated_tasks: Liste des tâches mises à jour (tuples à 5 éléments)
+            - old_task: Tuple (id, desc, lab, status, dep) correspondant à l'ancienne tâche avant suppression
 
     Note:
         - L'ID peut être fourni comme string ou int, il sera converti
-        - Si l'ID n'est pas numérique, retourne (False, [])
+        - Si l'ID n'est pas numérique, retourne (False, [], None)
         
     Example:
-        >>> rmDep(["1;Tâche 1;None", "2;Tâche 2;Etiquette1"], "2")
-        (True, [(1, 'Tâche 1', [], 'suspended', None), (2, 'Tâche 2', ['Etiquette1'], 'suspended', None)], (2, 'Tâche 2', ['Etiquette1'], 'suspended', '1'))
+        >>> rmDep(["1;Tâche 1;None;completed;None", "2;Tâche 2;tag1;suspended;1"], "2")
+        (True, [(1, 'Tâche 1', [], 'completed', None), (2, 'Tâche 2', ['tag1'], 'suspended', None)], (2, 'Tâche 2', ['tag1'], 'suspended', 1))
     """
 
     # Validation et conversion de l'ID
@@ -527,20 +548,18 @@ def show(tasks):
         
     Note:
         - Affiche "No tasks found." si aucune tâche n'existe
-        - Le tableau s'adapte automatiquement à la longueur des descriptions
+        - Le tableau s'adapte automatiquement à la longueur des colonnes
         - Les tâches sont automatiquement triées par ID croissant
-        - Format du tableau: +-----+-------------+-----------------------------------------+
-                             | id  | description | étiquette1, étiquette2, ..., étiquetten |
-                             +-----+-------------+-----------------------------------------+
+        - Format du tableau avec 5 colonnes: id, description, étiquette(s), statut, dépendance
                            
     Example:
-        >>> show(["2;Seconde tâche;None", "1;Première tâche;étiquette1,étiquette2"])
-        +-----+---------------+------------------------+
-        | id  | description   | étiquettes             |
-        +-----+---------------+------------------------+
-        | 1   | Première tâche| étiquette1, étiquette2 |
-        | 2   | Seconde tâche | None                   |
-        +-----+---------------+------------------------+
+        >>> show(["2;Seconde tâche;None;suspended;None", "1;Première tâche;tag1,tag2;started;2"])
+        +-----+-----------------+----------------+----------+------------+
+        | id  | description     | étiquette(s)   | statut   | dépendance |
+        +-----+-----------------+----------------+----------+------------+
+        | 1   | Première tâche  | tag1, tag2     | started  | 2          |
+        | 2   | Seconde tâche   | None           | suspended| None       |
+        +-----+-----------------+----------------+----------+------------+
     """
 
     # Parse et vérifie s'il y a des tâches
