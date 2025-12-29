@@ -197,38 +197,46 @@ def modify(tasks, task_id, new_details = None, new_status = None):
 
     # Recherche et modification de la tâche correspondante
     for i, (tid, desc, lab, state, dep) in enumerate(parsed_tasks):
-            if tid == task_id:
-                old_task = (tid, desc, lab, state, dep)
-                
-                # Mise à jour du statut si fourni
-                if new_status is not None:
-                    if new_status not in ["started", "suspended", "completed", "cancelled"]:
-                        print(f"Statut '{new_status}' invalide, pas de modification du statut")
-                elif (new_status == "started" or new_status == "completed") and dep is not None:
-                    # On cherche le statut de la tâche dépendante
+        if tid == task_id:
+            # IMPORTANT : On sauvegarde l'ancienne tâche AVANT toute modification
+            old_task = (tid, desc, lab, state, dep)
+            
+            # 1. Mise à jour du statut avec vérification des dépendances
+            if new_status is not None:
+                # Si on essaie de DÉMARRER une tâche qui a une dépendance
+                if new_status == "started" and dep is not None:
+                    # On vérifie si la tâche parente est terminée
                     parent_completed = False
-                    parent_found = False
+                    parent_exists = False
 
                     for (pid, _, _, pstate, _) in parsed_tasks:
                         if pid == dep:
-                            parent_found = True
+                            parent_exists = True
                             if pstate == "completed":
                                 parent_completed = True
                             break
                     
-                    if parent_found and not parent_completed:
-                        print(f"La tâche dépendante (ID {dep}) n'est pas complétée. Le statut ne peut pas être mis à jour.")
+                    if parent_exists and not parent_completed:
+                        print(f"REFUSÉ : La tâche parente (ID {dep}) n'est pas terminée.")
+                        # On ne modifie pas 'state', il reste l'ancien
                     else:
                         state = new_status
 
-                else:
+                # Si c'est un autre statut valide ou s'il n'y a pas de dépendance
+                elif new_status in ["started", "suspended", "completed", "cancelled"]:
                     state = new_status
+                
+                else:
+                    print(f"Statut '{new_status}' invalide, pas de modification.")
 
-                if new_details is not None:
-                    desc = new_details
-                parsed_tasks[i] = (tid, desc, lab, state, dep)
-                found = True
-                break    
+            # 2. Mise à jour de la description
+            if new_details is not None:
+                desc = new_details
+                
+            # On met à jour la ligne dans la liste
+            parsed_tasks[i] = (tid, desc, lab, state, dep)
+            found = True
+            break    
     
     return found, parsed_tasks, old_task
     
@@ -277,7 +285,18 @@ def rm(tasks, task_id):
     
     # Détermine si une tâche a été supprimée
     found = len(filtered_tasks) < original_length
-    if not found:
+
+    final_tasks = []
+
+    if found:
+        # Met à jour les dépendances des autres tâches
+        for (tid, desc, lab, status, dep) in filtered_tasks:
+            if dep == task_id:
+                final_tasks.append((tid, desc, lab, status, None))
+            else:
+                final_tasks.append((tid, desc, lab, status, dep))
+    else:
+        final_tasks = filtered_tasks
         old_task = None
 
     return found, filtered_tasks, old_task

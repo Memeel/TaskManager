@@ -76,6 +76,17 @@ def modify(task_id, filename, tasks, new_details = None, new_status = None):
     found, updated_tasks, old_task = core.modify(tasks, task_id, new_details, new_status)
     
     if found:
+        # Vérifie la tâche modifiée pour l'affichage
+        new_task = None
+        for t in updated_tasks:
+            if t[0] == old_task[0]:
+                new_task = t
+                break
+
+        if new_task == old_task:
+            print("Aucune modification apportée à la tâche.")
+            return
+        
         # Réécrit tout le fichier avec les tâches mises à jour
         with open(filename, 'w') as f:
             for tid, desc, lab, status, dep in updated_tasks:

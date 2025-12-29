@@ -1,0 +1,9 @@
+[This task was added at 2025-12-30 00:01:16] 1;Faire les courses;étiquette1,étiquette2;suspended;None
+[This task was added at 2025-12-30 00:01:28] 2;Faire les courses;étiquette1,étiquette2;suspended;1
+[This task was added at 2025-12-30 00:01:37] 3;Faire les courses;étiquette1,étiquette2;suspended;2
+[The description of this task was modified at 2025-12-30 00:01:48] 2;Faire les courses;étiquette1,étiquette2;suspended;1
+[This task was removed at 2025-12-30 00:23:37] 1;Faire les courses;étiquette1,étiquette2;suspended;None
+[A label was added to this task at 2025-12-30 00:23:50] 2;Faire les courses;étiquette1,étiquette2;suspended;1
+[A label was removed from this task at 2025-12-30 00:24:05] 2;Faire les courses;étiquette1,étiquette2,urgent;suspended;1
+[A dependence was removed from this task at 2025-12-30 00:24:28] 2;Faire les courses;étiquette1,étiquette2;suspended;1
+[All labels of this task were removed at 2025-12-30 00:24:44] 2;Faire les courses;étiquette1,étiquette2;suspended;None
